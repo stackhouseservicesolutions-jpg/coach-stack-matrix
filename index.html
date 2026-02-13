@@ -158,7 +158,11 @@ const { jsPDF } = window.jspdf;
 let db = JSON.parse(localStorage.getItem("coachStackData")) || {};
 let chart;
 
-init();
+window.onload = function(){
+    init();
+    renderCrew();
+};
+
 
 function init(){
     let year = new Date().getFullYear();
