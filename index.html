@@ -194,6 +194,7 @@ function saveCore(){
 }
 
 function addCrew(){
+
     db[season()] = db[season()] || { clientName:"", core:null, crew:[] };
 
     db[season()].crew.push({
@@ -206,20 +207,9 @@ function addCrew(){
         N:+crewN.value||0,
         motivators:[crewMot1.value, crewMot2.value].filter(v=>v),
         loves:[crewLove1.value, crewLove2.value].filter(v=>v),
-        db[season()].crew.push({
-    name:crewName.value,
-    role:crewRole.value,
-    O:+crewO.value||0,
-    C:+crewC.value||0,
-    E:+crewE.value||0,
-    A:+crewA.value||0,
-    N:+crewN.value||0,
-    motivators:[crewMot1.value, crewMot2.value].filter(v=>v),
-    loves:[crewLove1.value, crewLove2.value].filter(v=>v),
-    snapshots:[],
-    status:"Active"
-});
-
+        snapshots:[],
+        status:"Active"
+    });
 
     saveDB();
     renderCrew();
