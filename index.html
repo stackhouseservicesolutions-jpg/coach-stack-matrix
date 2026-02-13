@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Coach Stack Personality Matrix Diagnostic</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+body { font-family: Arial; background:#f4f4f4; display:flex; }
+.left { width:70%; padding:20px; }
+.right { width:30%; background:white; padding:20px; border-left:2px solid #ddd; }
+input, select { padding:6px; margin:5px; }
+button { padding:6px 10px; margin:4px; cursor:pointer; }
+.member { padding:6px; border-bottom:1px solid #eee; cursor:pointer; }
+.snapshot-box { background:white; padding:15px; margin-top:20px; }
+</style>
+</head>
+<body>
+
+<div class="left">
+
+<h2>Coach Stack Personality Matrix Diagnostic</h2>
+
+<select id="seasonSelect"></select>
+<input type="text" id="clientName" placeholder="Client Name">
+<button onclick="saveSeason()">Save Season</button>
+
+<hr>
+
+<h3>Core Profile (You)</h3>
+
+<select id="coreO"><option value="">O</option><option value="1">↑</option><option value="0">=</option><option value="-1">↓</option></select>
+<select id="coreC"><option value="">C</option><option value="1">↑</option><option value="0">=</option><option value="-1">↓</option></select>
+<select id="coreE"><option value="">E</option><option value="1">↑</option><option value="0">=</option><option value="-1">↓</option></select>
+<select id="coreA"><option value="">A</option><option value="1">↑</option><option value="0">=</option><option value="-1">↓</option></select>
+<select id="coreN"><option value="">N</option><option value="1">↑</option><option value="0">=</option><option value="-1">↓</option></select>
+
+<br>
+
+<select id="coreMot1">
+<option value="">Motivator 1</option>
+<option>goods</option><option>love</option><option>service</option>
+<option>information</option><option>money</option><option>status</option>
+</select>
+
+<select id="coreMot2">
+<option value="">Motivator 2</option>
+<option>goods</option><option>love</option><option>service</option>
+<option>information</option><option>money</option><option>status</option>
+</select>
+
+<br>
+
+<select id="coreLove1">
+<option value="">Love Language 1</option>
+<option>words</option><option>service</option>
+<option>quality time</option><option>physical touch</option>
+<option>gifts</option>
+</select>
+
+<select id="coreLove2">
+<option value="">Love Language 2</option>
+<option>words</option><option>service</option>
+<option>quality time</option><option>physical touch</option>
+<option>gifts</option>
+</select>
+
+<button onclick="saveCore()">Save Core</button>
+
+<hr>
+
+<h3>Crew Member</h3>
+
+<input type="text" id="crewName" placeholder="Crew Name">
+<select id="crewRole">
+<option value="">Role</option>
+<option>Advisor</option>
+<option>Associate</option>
+<option>Friend</option>
+<option>Assignment</option>
+</select>
+
+<br>
+
+<select id="crewO"><option value="">O</option><option value="1">↑</option><option value="0">=</option><option value="-1">↓</option></select>
+<select id="crewC"><option value="">C</option><option value="1">↑</option><option value="0">=</option><option value="-1">↓</option></select>
+<select id="crewE"><option value="">E</option><option value="1">↑</option><option value="0">=</option><option value="-1">↓</option></select>
+<select id="crewA"><option value="">A</option><option value="1">↑</option><option value="0">=</option><option value="-1">↓</option></select>
+<select id="crewN"><option value="">N</option><option value="1">↑</option><option value="0">=</option><option value="-1">↓</option></select>
+
+<br>
+
+<select id="crewMot1">
+<option value="">Motivator 1</option>
+<option>goods</option><option>love</option><option>service</option>
+<option>information</option><option>money</option><option>status</option>
+</select>
+
+<select id="crewMot2">
+<option value="">Motivator 2</option>
+<option>goods</option><option>love</option><option>service</option>
+<option>information</option><option>money</option><option>status</option>
+</select>
+
+<br>
+
+<select id="crewLove1">
+<option value="">Love Language 1</option>
+<option>words</option><option>service</option>
+<option>quality time</option><option>physical touch</option>
+<option>gifts</option>
+</select>
+
+<select id="crewLove2">
+<option value="">Love Language 2</option>
+<option>words</option><option>service</option>
+<option>quality time</option><option>physical touch</option>
+<option>gifts</option>
+</select>
+
+<button onclick="addCrew()">Add Crew</button>
+
+<hr>
+
+<select id="crewSelect"></select>
+<button onclick="compare()">Compare With Core</button>
+
+<canvas id="radarChart" width="500" height="400"></canvas>
+
+<div id="snapshotBox" class="snapshot-box"></div>
+
+<button onclick="saveSnapshot()">Save Snapshot</button>
+<button onclick="exportSnapshotPDF()">Export Snapshot PDF</button>
+
+<br><br>
+
+<button onclick="exportSeason()">Export Season File</button>
+<input type="file" onchange="importSeason(event)">
+<button onclick="resetSeason()">
+Reset Current Season
+</button>
+<button onclick="resetSystem()" style="background:red;color:white;">
+Reset System
+</button>
+</div>
+
+<div class="right">
+<h3>Crew List</h3>
+<div id="crewList"></div>
+</div>
+
+<script>
+const { jsPDF } = window.jspdf;
+
+let db = JSON.parse(localStorage.getItem("coachStackData")) || {};
+let chart;
+
+init();
+
+function init(){
+    let year = new Date().getFullYear();
+    for(let i=year;i<=year+5;i++){
+        seasonSelect.add(new Option(i,i));
+    }
+}
+
+function season(){ return seasonSelect.value; }
+
+function saveSeason(){
+    db[season()] = db[season()] || { clientName:"", core:null, crew:[] };
+    db[season()].clientName = clientName.value;
+    saveDB();
+}
+
+function saveCore(){
+    db[season()] = db[season()] || { clientName:"", core:null, crew:[] };
+    db[season()].core = {
+        O:+coreO.value||0,
+        C:+coreC.value||0,
+        E:+coreE.value||0,
+        A:+coreA.value||0,
+        N:+coreN.value||0,
+        motivators:[coreMot1.value, coreMot2.value].filter(v=>v),
+        loves:[coreLove1.value, coreLove2.value].filter(v=>v)
+    };
+    saveDB();
+}
+
+function addCrew(){
+    db[season()] = db[season()] || { clientName:"", core:null, crew:[] };
+
+    db[season()].crew.push({
+        name:crewName.value,
+        role:crewRole.value,
+        O:+crewO.value||0,
+        C:+crewC.value||0,
+        E:+crewE.value||0,
+        A:+crewA.value||0,
+        N:+crewN.value||0,
+        motivators:[crewMot1.value, crewMot2.value].filter(v=>v),
+        loves:[crewLove1.value, crewLove2.value].filter(v=>v),
+        db[season()].crew.push({
+    name:crewName.value,
+    role:crewRole.value,
+    O:+crewO.value||0,
+    C:+crewC.value||0,
+    E:+crewE.value||0,
+    A:+crewA.value||0,
+    N:+crewN.value||0,
+    motivators:[crewMot1.value, crewMot2.value].filter(v=>v),
+    loves:[crewLove1.value, crewLove2.value].filter(v=>v),
+    snapshots:[],
+    status:"Active"
+});
+
+    });
+
+    saveDB();
+    renderCrew();
+}
+
+function renderCrew(){
+
+    crewList.innerHTML="";
+    crewSelect.innerHTML="";
+    if(!db[season()]) return;
+
+    db[season()].crew.forEach((m,i)=>{
+
+        let faded = m.status === "Inactive" ? "opacity:0.4;" : "";
+
+        crewList.innerHTML+=`
+        <div class="member" style="${faded}">
+        ${m.name} (${m.role}) - ${m.status}
+        <button onclick="toggleCrewStatus(${i})" style="margin-left:10px;">
+        ${m.status === "Active" ? "Mark Inactive" : "Mark Active"}
+        </button>
+        </div>
+        `;
+
+        if(m.status === "Active"){
+            crewSelect.add(new Option(m.name,i));
+        }
+
+    });
+}
+
+function compare(){
+    let core=db[season()].core;
+    let crew=db[season()].crew[crewSelect.value];
+    if(!core) return alert("Save core first.");
+
+    let ctx=radarChart.getContext("2d");
+    if(chart) chart.destroy();
+
+    chart=new Chart(ctx,{
+        type:'radar',
+        data:{
+            labels:['O','C','E','A','N'],
+            datasets:[
+                {label:"You", data:[core.O+1,core.C+1,core.E+1,core.A+1,core.N+1]},
+                {label:crew.name, data:[crew.O+1,crew.C+1,crew.E+1,crew.A+1,crew.N+1]}
+            ]
+        },
+        options:{ scales:{ r:{min:0,max:2,ticks:{stepSize:1}} } }
+    });
+
+    generateReflection(core,crew);
+}
+
+function generateReflection(core,crew){
+
+    let tension=[];
+    ['O','C','E','A','N'].forEach(t=>{
+        if(Math.abs(core[t]-crew[t])>=2)
+            tension.push(t);
+    });
+
+    let sharedMotivators = crew.motivators.filter(m=>core.motivators.includes(m));
+    let sharedLoves = crew.loves.filter(l=>core.loves.includes(l));
+
+    let motivatorInsight =
+        sharedMotivators.length
+        ? "You share motivational overlap in: "+sharedMotivators.join(", ")+"."
+        : "You may experience growth tension around differing motivators. Clarifying shared outcomes may strengthen alignment.";
+
+    let loveInsight =
+        sharedLoves.length
+        ? "You share emotional pacing overlap in: "+sharedLoves.join(", ")+"."
+        : "You may benefit from understanding how each of you experiences connection differently.";
+
+    let personalityInsight =
+        tension.length
+        ? "You may experience growth tension in: "+tension.join(", ")+"."
+        : "You may find this dynamic naturally stabilizing.";
+
+    snapshotBox.innerHTML=`
+        <h3>Growth Reflection</h3>
+        <p>${personalityInsight}</p>
+        <p>${motivatorInsight}</p>
+        <p>${loveInsight}</p>
+    `;
+}
+
+function saveSnapshot(){
+    let crew=db[season()].crew[crewSelect.value];
+    crew.snapshots.push({
+        date:new Date().toISOString(),
+        summary:snapshotBox.innerText
+    });
+    saveDB();
+    alert("Snapshot saved.");
+}
+
+async function exportSnapshotPDF(){
+    const pdf=new jsPDF();
+    pdf.text("Coach Stack Personality Matrix Diagnostic",10,10);
+
+    const canvas=await html2canvas(radarChart);
+    const img=canvas.toDataURL("image/png");
+    pdf.addImage(img,"PNG",10,20,180,100);
+
+    pdf.text(snapshotBox.innerText,10,130);
+    pdf.save("Coach_Stack_Snapshot.pdf");
+}
+
+function exportSeason(){
+    let blob=new Blob([JSON.stringify(db)],{type:"application/json"});
+    let link=document.createElement("a");
+    link.href=URL.createObjectURL(blob);
+    link.download="CoachStackSeason.json";
+    link.click();
+}
+
+
+function importSeason(e){
+    let reader=new FileReader();
+    reader.onload=function(){
+        db=JSON.parse(reader.result);
+        saveDB();
+        alert("Season imported.");
+    }
+    reader.readAsText(e.target.files[0]);
+}
+
+function saveDB(){
+    localStorage.setItem("coachStackData",JSON.stringify(db));
+    renderCrew();
+}
+
+renderCrew();
+function resetSystem(){
+
+    if(confirm("This will permanently erase all saved seasons, crew members, and snapshots. Continue?")){
+
+        localStorage.removeItem("coachStackData");
+        db = {};
+        alert("System reset complete.");
+        location.reload();
+
+    }
+}
+function resetSeason(){
+
+    let current = season();
+
+    if(confirm("This will erase only the current season data. Continue?")){
+
+        delete db[current];
+        saveDB();
+        alert("Current season cleared.");
+        location.reload();
+
+    }
+}
+function toggleCrewStatus(index){
+
+    let member = db[season()].crew[index];
+
+    if(member.status === "Active"){
+        member.status = "Inactive";
+    } else {
+        member.status = "Active";
+    }
+
+    saveDB();
+    renderCrew();
+}
+
+</script>
+</body>
+</html>
